@@ -20,3 +20,12 @@
 - Part 1 - Run a Windows Service in a Windows Container
 - Part 2 - Run a Windows Service in a Windows Container with config updates and volume mapping
 
+## Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
+
+- Notes
+- Part 1 - Create a cluster with Windows nodes
+- Part 2 - Set up logging/monitoring with log analytics
+- Part 3 - Deploy an ingress controller
+- Part 4 - Deploy windows workloads with taints/tolerations and node selectors
+- Part 5 - Deploy linux workload
+- Part 6 - Debugging and troubleshooting
