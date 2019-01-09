@@ -7,17 +7,16 @@ Prereqs:
 
 - Azure subscription
 - install azure-cli
-- install [ace-engine](https://github.com/Azure/acs-engine/releases/latest)
+- install [acs-engine](https://github.com/Azure/acs-engine/releases/latest)
 - ssh keys
 
 ### Creating the cluster with acs-engine
 
-Acs-engine will allow us to create our kubernetes cluster with windows nodes. Follow this [walkthrough](https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/windows.md) to build a kubernetes cluster and deploy a Winodws web server on it. (TODO: Bring just Windows section into this.)
+Acs-engine will allow us to create our kubernetes cluster with windows nodes. Follow this [walkthrough](https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/windows.md) to build a kubernetes cluster and deploy a Windows web server on it.
 
 Notes:
 
 - acs-engine does not fully support 2019 yet [#4327](https://github.com/Azure/acs-engine/issues/4327)
-- Had to create a role assignment: az role assignement create --assignee $sp.appId --role "Owner" --scope $groupId. (TODO: use https://www.jamessturtevant.com/posts/Deploying-AKS-with-least-privileged-service-principal/)
 
 ## Part 2 - Logging and monitoring
 
