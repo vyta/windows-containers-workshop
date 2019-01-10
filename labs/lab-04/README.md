@@ -6,7 +6,9 @@
 Prereqs:
 
 - Azure subscription
-- install azure-cli
+- install [azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
+- install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- install [helm](https://docs.helm.sh/using_helm/)
 - install [acs-engine](https://github.com/Azure/acs-engine/releases/latest)
 - ssh keys
 
@@ -168,7 +170,20 @@ kubectl logs -lapp=iis-1803-with-logging -c fluentd
 
 ### Monitoring
 
+It is important to observe and monitor the health of your cluster. There are a few options available for monitoring Kubernetes cluster, some of the main ones are highlighted [here](https://github.com/Azure/acs-engine/blob/1f855a0f8320d33a49750e9fac67915ecb113cdc/docs/kubernetes/monitoring.md). In this part of the lab, we will be looking at Azure Monitor (formerly Operations Management Suite) as well as how Windows Management Instrumentation can be leveraged to export metrics to Prometheus.
 
+#### Azure Monitor
+
+Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor [here](https://docs.microsoft.com/en-us/azure/azure-monitor/overview).
+
+1. Create an Azure Monitor Workspace if none
+1. Install Container Insights on Windows Container Hosts https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts
+    - preparation before intalling 
+    - installation
+
+#### [WIP] Prometheus and WMI Exporter
+
+Prometheus is another tool used to monitor your kubernetes cluster. A [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/) exporter for Windows machines using the WMI.
 
 ## Part 3 - Deploy an Ingress controller
 
