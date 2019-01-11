@@ -30,8 +30,9 @@ Similar to previous labs in this workshop, windows applications often maintain l
 
 As it currently stands, Docker Automated builds do not support windows. For this reason, we will need to manually build and push to our own repo. In order to do so, you need to:
 
-1. Get the latest FluentD Dockerfile for Windows. As of Jan 7, 2019, [v1.3](https://raw.githubusercontent.com/fluent/fluentd-docker-image/master/v1.3/windows/Dockerfile) isthe latest.
+1. Get the latest Dockerfile. Look inside docker-image The [FluentD Docker Image repository](https://github.com/fluent/fluentd-docker-image) contains the latest Dockerfile. 
 1. Create a fluent.conf file in the same directory.
+
 
 To configure FluentD to gather events from a file, we'll configure the ```tail``` input plugin to watch a directory for .log files, then to configure FluentD to output those events to stdout, we'll configure the ```stdout``` output plugin. The contents of your fluent.conf should look something like this:
 

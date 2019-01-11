@@ -1,0 +1,50 @@
+# make sure to replace "my-repo" in the fluentd image with your repo name
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iis-1803-with-logging
+  labels:
+    app: iis-1803-with-logging
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: iis-1803-with-logging
+      labels:
+        app: iis-1803-with-logging
+    spec:
+      containers:
+      - name: iis
+        image: microsoft/iis:windowsservercore-1803
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: C:\inetpub\logs\LogFiles\w3svc1
+          name: log-volume
+      - name: fluentd
+        image: my-repo/fluentd-win:1.3
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: C:\logs
+          name: log-volume
+      volumes:
+      - name: log-volume
+        emptyDir: {}
+      nodeSelector:
+        "beta.kubernetes.io/os": windows
+  selector:
+    matchLabels:
+      app: iis-1803-with-logging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iis-with-logging
+spec:
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 80
+  selector:
+    app: iis-1803-with-logging
