@@ -9,16 +9,14 @@ Prereqs:
 - install [azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 - install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - install [helm](https://docs.helm.sh/using_helm/)
-- install [acs-engine](https://github.com/Azure/acs-engine/releases/latest)
+- install [aks-engine](https://github.com/Azure/aks-engine/releases/latest)
 - ssh keys
 
-### Creating the cluster with acs-engine
+### Creating the cluster with aks-engine
 
-Acs-engine will allow us to create our kubernetes cluster with windows nodes. Follow this [walkthrough](https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/windows.md) to build a kubernetes cluster and deploy a Windows web server on it.
+Aks-engine will allow us to create our kubernetes cluster with windows nodes. Before you follow this [walkthrough](https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/docs/topics/windows.md), make note that we will want to use the [windows/kubernetes-hybrid.json](https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/examples/windows/kubernetes-hybrid.json) apimodel to deploy a cluster with 2 Windows nodes, and 2 Linux nodes (5 total nodes, including the master) instead of the simple cluster with 2 Windows nodes.
 
-Notes:
-
-- acs-engine does not fully support 2019 yet [#4327](https://github.com/Azure/acs-engine/issues/4327)
+[Learn more about Windows and Kubernetes](https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/docs/topics/windows-and-kubernetes.md)
 
 ## Part 2 - Logging and monitoring
 
@@ -57,6 +55,13 @@ To configure FluentD to gather events from a file, we'll configure the ```tail``
 </match>
 ```
 
+The base images of your app and the fluentd sidecar, need to be compatible. In this case, the IIS image is using windowsservercore-ltsc2019. Let's make this change in our Dockerfile:
+
+```Dockerfile
+FROM mcr.microsoft.com/windows/servercore:ltsc2019
+...
+```
+
 Now you're ready to build and push your image:
 
 ```sh
@@ -76,20 +81,27 @@ There are two main differences in our deployment:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: iis-1803-with-logging
+  name: iis-with-logging
   labels:
-    app: iis-1803-with-logging
+    app: iis-with-logging
 spec:
   replicas: 1
   template:
     metadata:
-      name: iis-1803-with-logging
+      name: iis-with-logging
       labels:
-        app: iis-1803-with-logging
+        app: iis-with-logging
     spec:
       containers:
       - name: iis
-        image: microsoft/iis:windowsservercore-1803
+        image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+        resources:
+          limits:
+            cpu: 1
+            memory: 800m
+          requests:
+            cpu: .1
+            memory: 300m
         ports:
           - containerPort: 80
         volumeMounts:
@@ -108,7 +120,7 @@ spec:
         "beta.kubernetes.io/os": windows
   selector:
     matchLabels:
-      app: iis-1803-with-logging
+      app: iis-with-logging
 ---
 apiVersion: v1
 kind: Service
@@ -120,10 +132,10 @@ spec:
   - protocol: TCP
     port: 80
   selector:
-    app: iis-1803-with-logging
+    app: iis-with-logging
 ```
 
-Now you should be able to run ```kubectl logs -lapp=iis-1803-with-logging -c fluentd``` to view iis events.
+Now you should be able to run ```kubectl logs -lapp=iis-with-logging -c fluentd``` to view iis events.
 
 Example output:
 
@@ -170,21 +182,25 @@ kubectl logs -lapp=iis-1803-with-logging -c fluentd
 
 ### Monitoring
 
-It is important to observe and monitor the health of your cluster. There are a few options available for monitoring Kubernetes cluster, some of the main ones are highlighted [here](https://github.com/Azure/acs-engine/blob/1f855a0f8320d33a49750e9fac67915ecb113cdc/docs/kubernetes/monitoring.md). In this part of the lab, we will be looking at Azure Monitor (formerly Operations Management Suite) as well as how Windows Management Instrumentation can be leveraged to export metrics to Prometheus.
+It is important to observe and monitor the health of your cluster. There are a few options available for monitoring Kubernetes cluster, some of the main ones are highlighted [here](https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/docs/topics/monitoring.md). In this part of the lab, we will be looking at Azure Monitor (formerly Operations Management Suite) as well as how Windows Management Instrumentation can be leveraged to export metrics to Prometheus.
 
-#### Azure Monitor
+#### Container Insights and Log Analytics 
 
 Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor [here](https://docs.microsoft.com/en-us/azure/azure-monitor/overview).
 
-1. Create an Azure Monitor Workspace if none
-1. Install Container Insights on Windows Container Hosts https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts
-    - preparation before intalling 
-    - installation
+1. Create a Log Analytics Workspace:
 
-#### [WIP] Prometheus and WMI Exporter
+- Sign in to the [Azure portal](d70e5ab28f56103dd36769e0dadde1d499caf703)
+- Select **Create a resourcce** > **Management tools** > **Log Analytics**
+- Configure and Create.
 
-Prometheus is another tool used to monitor your kubernetes cluster. A [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/) exporter for Windows machines using the WMI.
+1. [Install OMS Agent on Master Node](https://github.com/Microsoft/OMS-docker/tree/master/Kubernetes/windows) (master node)
+1. [Install OMS Agent on Windows Agent]
+1. [Install OMS Agent on Linux Nodes](https://github.com/Microsoft/OMS-docker/tree/master/Kubernetes)
+You should now be able to 
 
-## Part 3 - Deploy an Ingress controller
+## Part 3 - Working with Linux and Windows Workloads
 
-https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/mixed-cluster-ingress.md
+## Part 4 - Deploy an Ingress controller
+
+https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/docs/howto/mixed-cluster-ingress.md
