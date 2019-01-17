@@ -186,18 +186,38 @@ It is important to observe and monitor the health of your cluster. There are a f
 
 #### Container Insights and Log Analytics 
 
-Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor [here](https://docs.microsoft.com/en-us/azure/azure-monitor/overview).
+Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor for Containers [here](https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-overview).
 
-1. Create a Log Analytics Workspace:
+Follow the steps [here](https://github.com/Microsoft/OMS-docker/tree/aks-engine) to add Azure Monitoring for Containers to your cluster.
+> Tip: Leverage the [AddAzureMonitor-Containers.ps1](https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/AddAzureMonitor-Containers.ps1) when adding the Container Insights Solution to your workspace.
 
-- Sign in to the [Azure portal](d70e5ab28f56103dd36769e0dadde1d499caf703)
-- Select **Create a resourcce** > **Management tools** > **Log Analytics**
-- Configure and Create.
+Now you should see data from your linux nodes. There currently isn't a containerized omsagent for windows, so there is additional work needed to get those nodes up to speed:
 
-1. [Install OMS Agent on Master Node](https://github.com/Microsoft/OMS-docker/tree/master/Kubernetes/windows) (master node)
-1. [Install OMS Agent on Windows Agent]
-1. [Install OMS Agent on Linux Nodes](https://github.com/Microsoft/OMS-docker/tree/master/Kubernetes)
-You should now be able to 
+[Installing OMS Agent on Master Node](https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts):
+
+  1. First we need to prep the windows nodes before installing the agent:
+
+    - RDP into each Windows Node:
+
+    ```bash
+    ssh -L 5500:<node-ip>:3389 linuxuser@<clustername>.<region>.cloudapp.azure.com
+
+    # Launch RDP to connect to localhost:5500 and use Windows credentials to login
+    ```
+    - Then run the prep script:
+
+    ```bash
+    powershell Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/PrepWindowsNodesForAzMon.ps1 -OutFile PrepWindowsNodesForAzMon.ps1;
+    powershell PrepWindowsNodesForAzMon.ps1
+    ```
+  1. Then to install the Windows Agents on our Windows Nodes:
+
+      1. In the Azure portal, click All services found in the upper left-hand corner. In the list of resources, type Log Analytics. As you begin typing, the list filters based on your input. Select Log Analytics.
+      1. In your list of Log Analytics workspaces, select DefaultLAWorkspace created earlier.
+      1. On the left-hand menu, under Workspace Data Sources, click Virtual machines.
+      1. In the list of Virtual machines, select a virtual machine you want to install the agent on. Notice that the Log Analytics connection status for the VM indicates that it is Not connected.
+      1. In the details for your virtual machine, select Connect. The agent is automatically installed and configured for your Log Analytics workspace. This process takes a few minutes, during which time the Status is Connecting.
+      1. After you install and connect the agent, the Log Analytics connection status will be updated with This workspace.
 
 ## Part 3 - Working with Linux and Windows Workloads
 
