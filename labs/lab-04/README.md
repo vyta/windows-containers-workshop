@@ -1,5 +1,5 @@
 
-# Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
+# [!WIP] Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
 
 ## Part 1 - Creating the cluster
 
@@ -196,7 +196,6 @@ Now you should see data from your linux nodes. There currently isn't a container
 [Installing OMS Agent on Master Node](https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts):
 
   1. First we need to prep the windows nodes before installing the agent:
-
     - RDP into each Windows Node:
 
     ```bash
@@ -211,16 +210,27 @@ Now you should see data from your linux nodes. There currently isn't a container
     powershell PrepWindowsNodesForAzMon.ps1
     ```
   1. Then to install the Windows Agents on our Windows Nodes:
+      1. In the Azure portal, click **All services** found in the upper left-hand corner. In the list of resources, type **Log Analytics**. As you begin typing, the list filters based on your input. Select **Log Analytics**.
+      1. In your list of Log Analytics workspaces, select *DefaultLAWorkspace* created earlier.
+      1. On the left-hand menu, under Workspace Data Sources, click **Virtual machines**.
+      1. In the list of **Virtual machines**, select a virtual machine you want to install the agent on. Notice that the **Log Analytics connection status** for the VM indicates that it is **Not connected**.
+      1. In the details for your virtual machine, select **Connect**. The agent is automatically installed and configured for your Log Analytics workspace. This process takes a few minutes, during which time the **Status** is **Connecting**.
+      1. After you install and connect the agent, the **Log Analytics connection status** will be updated with **This workspace**.
 
-      1. In the Azure portal, click All services found in the upper left-hand corner. In the list of resources, type Log Analytics. As you begin typing, the list filters based on your input. Select Log Analytics.
-      1. In your list of Log Analytics workspaces, select DefaultLAWorkspace created earlier.
-      1. On the left-hand menu, under Workspace Data Sources, click Virtual machines.
-      1. In the list of Virtual machines, select a virtual machine you want to install the agent on. Notice that the Log Analytics connection status for the VM indicates that it is Not connected.
-      1. In the details for your virtual machine, select Connect. The agent is automatically installed and configured for your Log Analytics workspace. This process takes a few minutes, during which time the Status is Connecting.
-      1. After you install and connect the agent, the Log Analytics connection status will be updated with This workspace.
+  1. Data collection:
+      1. Select **Advanced settings** from the menu on the left in your workspace.
+      1. Select **Data**, and then select **Windows Event Logs**.  
+      1. You add an event log by typing in the name of the log.  Type **System** and then click the plus sign **+**.  
+      1. In the table, check the severities **Error** and **Warning**.
+      1. Click **Save** at the top of the page to save the configuration.
+      1. Select **Windows Performance Data** to enable collection of performance counters on a Windows computer. 
+      1. When you first configure Windows Performance counters for a new Log Analytics workspace, you are given the option to quickly create several common counters. They are listed with a checkbox next to each. Click **Add the selected performance counters**.  They are added and preset with a ten second collection sample interval.
+      1. Click **Save** at the top of the page to save the configuration.
 
 ## Part 3 - Working with Linux and Windows Workloads
 
+Let's deploy a linux application in the same cluter as our IIS instance.
+
 ## Part 4 - Deploy an Ingress controller
 
-https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/docs/howto/mixed-cluster-ingress.md
+Now that we have two applications running in our cluster, we'll deploy an ingress controller to handle the traffic to each application.
