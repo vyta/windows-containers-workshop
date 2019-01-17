@@ -30,7 +30,7 @@ Similar to previous labs in this workshop, windows applications often maintain l
 
 As it currently stands, Docker Automated builds do not support windows. For this reason, we will need to manually build and push to our own repo. In order to do so, you need to:
 
-1. Get the latest FluentD Dockerfile for Windows. As of Jan 7, 2019, [v1.3](https://raw.githubusercontent.com/fluent/fluentd-docker-image/master/v1.3/windows/Dockerfile) isthe latest.
+1. Get the latest FluentD Dockerfile for Windows. As of Jan 7, 2019, [v1.3](https://raw.githubusercontent.com/fluent/fluentd-docker-image/master/v1.3/windows/Dockerfile) is the latest.
 1. Create a fluent.conf file in the same directory.
 
 To configure FluentD to gather events from a file, we'll configure the ```tail``` input plugin to watch a directory for .log files, then to configure FluentD to output those events to stdout, we'll configure the ```stdout``` output plugin. The contents of your fluent.conf should look something like this:
@@ -189,26 +189,24 @@ It is important to observe and monitor the health of your cluster. There are a f
 Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor for Containers [here](https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-overview).
 
 Follow the steps [here](https://github.com/Microsoft/OMS-docker/tree/aks-engine) to add Azure Monitoring for Containers to your cluster.
-> Tip: Leverage the [AddAzureMonitor-Containers.ps1](https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/AddAzureMonitor-Containers.ps1) when adding the Container Insights Solution to your workspace.
+> **Tip**: Leverage the [AddAzureMonitor-Containers.ps1](https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/AddAzureMonitor-Containers.ps1) when adding the Container Insights Solution to your workspace.
 
 Now you should see data from your linux nodes. There currently isn't a containerized omsagent for windows, so there is additional work needed to get those nodes up to speed:
 
 [Installing OMS Agent on Master Node](https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts):
 
   1. First we need to prep the windows nodes before installing the agent:
-    - RDP into each Windows Node:
+      - RDP into each Windows Node:
+        ```bash
+        PS C:\> ssh -L 5500:<node-ip>:3389 linuxuser@<clustername>.<region>.cloudapp.azure.com
 
-    ```bash
-    ssh -L 5500:<node-ip>:3389 linuxuser@<clustername>.<region>.cloudapp.azure.com
-
-    # Launch RDP to connect to localhost:5500 and use Windows credentials to login
-    ```
-    - Then run the prep script:
-
-    ```bash
-    powershell Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/PrepWindowsNodesForAzMon.ps1 -OutFile PrepWindowsNodesForAzMon.ps1;
-    powershell PrepWindowsNodesForAzMon.ps1
-    ```
+        # Launch RDP to connect to localhost:5500 and use Windows credentials to login
+        ```
+      - Then run the prep script:
+         ```bash
+        C:\> powershell Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/PrepWindowsNodesForAzMon.ps1 -OutFile PrepWindowsNodesForAzMon.ps1;
+        C:\> powershell PrepWindowsNodesForAzMon.ps1
+        ```
   1. Then to install the Windows Agents on our Windows Nodes:
       1. In the Azure portal, click **All services** found in the upper left-hand corner. In the list of resources, type **Log Analytics**. As you begin typing, the list filters based on your input. Select **Log Analytics**.
       1. In your list of Log Analytics workspaces, select *DefaultLAWorkspace* created earlier.
