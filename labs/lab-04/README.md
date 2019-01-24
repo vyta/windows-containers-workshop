@@ -18,6 +18,24 @@ Aks-engine will allow us to create our kubernetes cluster with windows nodes. Be
 
 [Learn more about Windows and Kubernetes](https://github.com/Azure/aks-engine/blob/077f396b69fd5674fc05e130fe8780045f136d9d/docs/topics/windows-and-kubernetes.md)
 
+> **Note**: Even when the pod status is **Ready**, IIS can be slow to start. You can warmup IIS requests with the following (exact number may vary depending on your app):
+> ```yaml
+> readinessProbe:
+>   httpGet:
+>     path: /
+>     port: 80
+>   timeoutSeconds: 3
+>   periodSeconds: 10
+>   initialDelaySeconds: 2
+> livenessProbe:
+>   httpGet:
+>     path: /
+>     port: 80
+>   timeoutSeconds: 3
+>   periodSeconds: 10
+>   initialDelaySeconds: 300
+> ```
+
 ## Part 2 - Logging and monitoring
 
 ### Logging
@@ -225,10 +243,30 @@ Now you should see data from your linux nodes. There currently isn't a container
       1. When you first configure Windows Performance counters for a new Log Analytics workspace, you are given the option to quickly create several common counters. They are listed with a checkbox next to each. Click **Add the selected performance counters**.  They are added and preset with a ten second collection sample interval.
       1. Click **Save** at the top of the page to save the configuration.
 
-## Part 3 - Working with Linux and Windows Workloads
+## Part 3 - Taints and Tolerations - Working with Linux and Windows Workloads
 
-Let's deploy a linux application in the same cluter as our IIS instance.
+Notice in parts 1 and 2, the deployment is set to assign pods to certain nodes using *nodeSelector*. The pods were assigned to whichever node had the label that was specified as a key-value pair in the *nodeSelector* field. To see the full list of labels on a given node, use `kubectl describe node <node-name>`. This is sufficient to ensure windows workloads are scheduled on windows nodes. We can do a similar thing to linux workloads to make sure they are scheduled appropriately. This would mean that any future workload deployed to your cluster will need a nodeSelector, and all past workloads will need to be changed to include the *nodeSelector*. Instead of having to make modifications to *both* Linux and Windows workloads, let's limit it to one. Since we are already adding the *nodeSelector* to Windows workloads, we can additionally taint windows nodes and add tolerations to windows workloads to ensure no changes need to be made to Linux workloads.
+
+Tainting the windows nodes with the NoSchedule effect, prevents pods from being scheduled on the nodes unless a matching toleration is provided in the PodSpec.
+
+To taint a node:
+
+```powershell
+PS > kubectl taint node <node-name> beta.kubernetes.io/os=windows:NoSchedule
+```
+
+To add Toleration to PodSpec of windows workloads:
+
+```yaml
+tolerations:
+- key: "beta.kubernetes.io/os"
+  operator: "Equals"
+  value: "windows"
+  effect: "NoSchedule"
+```
+
+This way, linux workloads can be deployed without any changes.
 
 ## Part 4 - Deploy an Ingress controller
 
-Now that we have two applications running in our cluster, we'll deploy an ingress controller to handle the traffic to each application.
+Deploy linux and use ingress controller to handle the traffic to each application.
