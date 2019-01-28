@@ -1,24 +1,49 @@
 
-# Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
+# [WIP] Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
 
-## Part 1 - Creating the cluster
+<!-- TOC -->
 
-Prereqs:
+- [Part 1 - Creating the cluster with aks-engine](#part-1---creating-the-cluster-with-aks-engine)
+- [Part 2 - Logging and Monitoring](#part-2---logging-and-monitoring)
+  - [Logging](#logging)
+  - [Monitoring](#monitoring)
+- [Part 3 - Taints and Tolerations](#part-3---taints-and-tolerations---working-with-linux-and-windows-workloads)
+- [Part 4 - Deploying an Ingress Controller](#part-4---deploying-an-ingress-controller)
+
+<!-- /TOC -->
+
+## Prereqs
 
 - Azure subscription
 - install [azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 - install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - install [helm](https://docs.helm.sh/using_helm/)
-- install [acs-engine](https://github.com/Azure/acs-engine/releases/latest)
+- install [aks-engine](https://github.com/Azure/aks-engine/releases/latest)
 - ssh keys
 
-### Creating the cluster with acs-engine
+## Part 1 - Creating the cluster with aks-engine
 
-Acs-engine will allow us to create our kubernetes cluster with windows nodes. Follow this [walkthrough](https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/windows.md) to build a kubernetes cluster and deploy a Windows web server on it.
+Aks-engine will allow us to create our kubernetes cluster with windows nodes. Before you follow this [walkthrough](https://github.com/Azure/aks-engine/blob/master/docs/topics/windows.md), make note that we will want to use the [windows/kubernetes-hybrid.json](https://github.com/Azure/aks-engine/blob/master/examples/windows/kubernetes-hybrid.json) apimodel to deploy a cluster with 2 Windows nodes, and 2 Linux nodes (5 total nodes, including the master) instead of the simple cluster with 2 Windows nodes.
 
-Notes:
+[Learn more about Windows and Kubernetes](https://github.com/Azure/aks-engine/blob/master/docs/topics/windows-and-kubernetes.md)
 
-- acs-engine does not fully support 2019 yet [#4327](https://github.com/Azure/acs-engine/issues/4327)
+> **Note**: Even when the pod status is **Ready**, IIS can be slow to start. You can warmup IIS requests with the following (exact number may vary depending on your app):
+> ```yaml
+> readinessProbe:
+>   httpGet:
+>     path: /
+>     port: 80
+>   timeoutSeconds: 3
+>   periodSeconds: 10
+>   initialDelaySeconds: 2
+> livenessProbe:
+>   httpGet:
+>     path: /
+>     port: 80
+>   timeoutSeconds: 3
+>   periodSeconds: 10
+>   initialDelaySeconds: 300
+> ```
 
 ## Part 2 - Logging and monitoring
 
@@ -58,6 +83,13 @@ To configure FluentD to gather events from a file, we'll configure the ```tail``
 </match>
 ```
 
+The base images of your app and the fluentd sidecar, need to be compatible. In this case, the IIS image is using windowsservercore-ltsc2019. Let's make this change in our Dockerfile:
+
+```Dockerfile
+FROM mcr.microsoft.com/windows/servercore:ltsc2019
+...
+```
+
 Now you're ready to build and push your image:
 
 ```sh
@@ -77,20 +109,27 @@ There are two main differences in our deployment:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: iis-1803-with-logging
+  name: iis-with-logging
   labels:
-    app: iis-1803-with-logging
+    app: iis-with-logging
 spec:
   replicas: 1
   template:
     metadata:
-      name: iis-1803-with-logging
+      name: iis-with-logging
       labels:
-        app: iis-1803-with-logging
+        app: iis-with-logging
     spec:
       containers:
       - name: iis
-        image: microsoft/iis:windowsservercore-1803
+        image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+        resources:
+          limits:
+            cpu: 1
+            memory: 800m
+          requests:
+            cpu: .1
+            memory: 300m
         ports:
           - containerPort: 80
         volumeMounts:
@@ -109,7 +148,7 @@ spec:
         "beta.kubernetes.io/os": windows
   selector:
     matchLabels:
-      app: iis-1803-with-logging
+      app: iis-with-logging
 ---
 apiVersion: v1
 kind: Service
@@ -121,10 +160,10 @@ spec:
   - protocol: TCP
     port: 80
   selector:
-    app: iis-1803-with-logging
+    app: iis-with-logging
 ```
 
-Now you should be able to run ```kubectl logs -lapp=iis-1803-with-logging -c fluentd``` to view iis events.
+Now you should be able to run ```kubectl logs -lapp=iis-with-logging -c fluentd``` to view iis events.
 
 Example output:
 
@@ -171,21 +210,140 @@ kubectl logs -lapp=iis-1803-with-logging -c fluentd
 
 ### Monitoring
 
-It is important to observe and monitor the health of your cluster. There are a few options available for monitoring Kubernetes cluster, some of the main ones are highlighted [here](https://github.com/Azure/acs-engine/blob/1f855a0f8320d33a49750e9fac67915ecb113cdc/docs/kubernetes/monitoring.md). In this part of the lab, we will be looking at Azure Monitor (formerly Operations Management Suite) as well as how Windows Management Instrumentation can be leveraged to export metrics to Prometheus.
+It is important to observe and monitor the health of your cluster. There are a few options available for monitoring Kubernetes cluster, some of the main ones are highlighted [here](https://github.com/Azure/aks-engine/blob/master/docs/topics/monitoring.md). In this part of the lab, we will be looking at Azure Monitor (formerly Operations Management Suite) as well as how Windows Management Instrumentation can be leveraged to export metrics to Prometheus.
 
-#### Azure Monitor
+#### Container Insights and Log Analytics 
 
-Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor [here](https://docs.microsoft.com/en-us/azure/azure-monitor/overview).
+Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor for Containers [here](https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-overview).
 
-1. Create an Azure Monitor Workspace if none
-1. Install Container Insights on Windows Container Hosts https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts
-    - preparation before intalling 
-    - installation
+Follow the steps [here](https://github.com/Microsoft/OMS-docker/tree/aks-engine) to add Azure Monitoring for Containers to your cluster.
+> **Tip**: Leverage the [AddAzureMonitor-Containers.ps1](https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/AddAzureMonitor-Containers.ps1) when adding the Container Insights Solution to your workspace.
 
-#### [WIP] Prometheus and WMI Exporter
+Now you should see data from your linux nodes. There currently isn't a containerized omsagent for windows, so there is additional work needed to get those nodes up to speed:
 
-Prometheus is another tool used to monitor your kubernetes cluster. A [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/) exporter for Windows machines using the WMI.
+[Installing OMS Agent on Master Node](https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-monitor/insights/containers.md#install-and-configure-windows-container-hosts):
 
-## Part 3 - Deploy an Ingress controller
+  1. First we need to prep the windows nodes before installing the agent:
+      - RDP into each Windows Node:
+        ```bash
+        PS> ssh -L 5500:<node-ip>:3389 <linuxuser>@<clustername>.<region>.cloudapp.azure.com
 
-https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/mixed-cluster-ingress.md
+        # Launch RDP to connect to localhost:5500 and use Windows credentials to login
+        ```
+      - Then run the prep script:
+         ```bash
+        PS> powershell Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/PrepWindowsNodesForAzMon.ps1 -OutFile PrepWindowsNodesForAzMon.ps1
+        PS> powershell .\PrepWindowsNodesForAzMon.ps1
+        ```
+  1. Then to install the Windows Agents on our Windows Nodes:
+      1. In the Azure portal, click **All services** found in the upper left-hand corner. In the list of resources, type **Log Analytics**. As you begin typing, the list filters based on your input. Select **Log Analytics**.
+      1. In your list of Log Analytics workspaces, select the workspace created earlier.
+      1. On the left-hand menu, under Workspace Data Sources, click **Virtual machines**.
+      1. In the list of **Virtual machines**, select a virtual machine you want to install the agent on. Notice that the **Log Analytics connection status** for the VM indicates that it is **Not connected**.
+      1. In the details for your virtual machine, select **Connect**. The agent is automatically installed and configured for your Log Analytics workspace. This process takes a few minutes, during which time the **Status** is **Connecting**.
+      1. After you install and connect the agent, the **Log Analytics connection status** will be updated with **This workspace**.
+
+  1. Data collection:
+      1. Select **Advanced settings** from the menu on the left in your workspace.
+      1. Select **Data**, and then select **Windows Event Logs**.  
+      1. You add an event log by typing in the name of the log.  Type **System** and then click the plus sign **+**.  
+      1. In the table, check the severities **Error** and **Warning**.
+      1. Click **Save** at the top of the page to save the configuration.
+      1. Select **Windows Performance Data** to enable collection of performance counters on a Windows computer. 
+      1. When you first configure Windows Performance counters for a new Log Analytics workspace, you are given the option to quickly create several common counters. They are listed with a checkbox next to each. Click **Add the selected performance counters**.  They are added and preset with a ten second collection sample interval.
+      1. Click **Save** at the top of the page to save the configuration.
+
+## Part 3 - Taints and Tolerations - Working with Linux and Windows Workloads
+
+Notice in parts 1 and 2, the deployment is set to assign pods to certain nodes using *nodeSelector*. The pods were assigned to whichever node had the label that was specified as a key-value pair in the *nodeSelector* field. To see the full list of labels on a given node, use `kubectl describe node <node-name>`. This is sufficient to ensure windows workloads are scheduled on windows nodes. We can do a similar thing to linux workloads to make sure they are scheduled appropriately. This would mean that any future workload deployed to your cluster will need a nodeSelector, and all past workloads will need to be changed to include the *nodeSelector*. Instead of having to make modifications to *both* Linux and Windows workloads, let's limit it to one. Since we are already adding the *nodeSelector* to Windows workloads, we can additionally taint windows nodes and add tolerations to windows workloads to ensure no changes need to be made to Linux workloads.
+
+Tainting the windows nodes with the NoSchedule effect, prevents pods from being scheduled on the nodes unless a matching toleration is provided in the PodSpec.
+
+To taint a node:
+
+```console
+PS > kubectl taint node <node-name> beta.kubernetes.io/os=windows:NoSchedule
+```
+
+To add Toleration to PodSpec of windows workloads:
+
+```yaml
+tolerations:
+- key: "beta.kubernetes.io/os"
+  operator: "Equals"
+  value: "windows"
+  effect: "NoSchedule"
+```
+
+This way, linux workloads can be deployed without any changes.
+
+## Part 4 - Deploying an Ingress Controller
+
+The final part of this lab is to use an ingress controller to route traffic to workloads running in your cluster, both Windows and Linux.
+
+  1. Create [Linux](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/ingress/linux-deployment.yaml) and [Windows](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/ingress/windows-deployment.yaml) services using `kubectl create -f [linux/windows]-deployment.yaml`.
+  1. Configure helm and setup NGINX:
+      ```console
+      PS> helm init --upgrade --node-selectors "beta.kubernetes.io/os=linux"
+
+      PS> helm install --name nginx-ingress --set controller.nodeSelector."beta\.kubernetes\.io\/os"=linux --set defaultBackend.nodeSelector."beta\.kubernetes\.io\/os"=linux --set rbac.create=true stable/nginx-ingress
+      ```
+      Check that all pods are ready:
+      ```console
+      PS> kubectl get pods
+      NAME                                             READY     STATUS    RESTARTS
+      iis-2019-5844957c4b-65r9v                        1/1       Running   0
+      nginx-6459f89666-jnzvl                           1/1       Running   0
+      nginx-ingress-controller-7d794c46f9-v2jjl        1/1       Running   0
+      nginx-ingress-default-backend-6688d8694d-tr5kg   1/1       Running   0
+      ```
+  1. Edit the [ingress rule](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/ingress/ingress.yaml) with a hostname you manage or for now, you can use your cluster's FQDN and create the ingress rule using `kubectl create -f ingress.yaml`
+  1. Test the ingress rule:
+      Get the external IP of your ingress controller:
+      ```console
+      PS> kubectl get svc nginx-ingress-controller
+      NAME                       TYPE           CLUSTER-IP    EXTERNAL-IP    PORT(S)
+      nginx-ingress-controller   LoadBalancer   10.0.179.43   13.90.247.55   80:32403/TCP,443:32286/TCP
+      ```
+      Test using `Invoke-WebRequest http://<external-ip>/<path> -Headers @{"Host"="<hostname>"}`:
+      ```console
+      PS> Invoke-WebRequest http://13.90.247.55 -Headers @{"Host"="aks-engine.eastus.cloudapp.com"}
+      StatusCode        : 200
+      Content           : <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+                          <html xmlns="http://www.w3.org/1999/xhtml">
+                          <head>
+      RawContent        : HTTP/1.1 200 OK
+                          Connection: keep-alive
+                          Vary: Accept-Encoding
+                          Accept-Ranges: bytes
+                          Content-Length: 703
+                          Content-Type: text/html
+                          ETag: "a14e5dd1baa7d41:0"
+                          Last...
+      ```
+      ```console
+      PS> Invoke-WebRequest http://13.90.247.55/linux -Headers @{"Host"="aks-engine.eastus.cloudapp.com"}
+      StatusCode        : 200
+      StatusDescription : OK
+      Content           : <!DOCTYPE html>
+                          <html>
+                          <head>
+                          <title>Welcome to nginx!</title>
+                          <style>
+                              body {
+                                  width: 35em;
+                                  margin: 0 auto;
+                                  font-family: Tahoma, Verdana, Arial, sans-serif;
+                              }
+                          </style>
+                          <...
+      RawContent        : HTTP/1.1 200 OK
+                          Connection: keep-alive
+                          Vary: Accept-Encoding
+                          Accept-Ranges: bytes
+                          Content-Length: 612
+                          Content-Type: text/html
+                          Date: Mon, 28 Jan 2019 21:37:50 GMT
+                          ETag: "5c21fedf-264"
+                          Last-Modi...
+      ```
