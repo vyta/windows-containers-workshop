@@ -57,12 +57,12 @@ Similar to previous labs in this workshop, windows applications often maintain l
 
 As it currently stands, Docker Automated builds do not support windows. For this reason, we will need to manually build and push to our own repo. In order to do so, you need to:
 
-1. Get the latest Dockerfile from [here] (https://github.com/fluent/fluentd-docker-image), by choosing the latest Windows Dockerfile. The `logging/fluentD/Dockerfile` file is the latest FluentD Dockerfile for Windows as of Jan 7, 2019.
-1. Create a fluent.conf file in the same directory. The `logging\fluentD\fluent.conf` contains the fluent.conf file from below.
+1. Get the latest Dockerfile from [here](https://github.com/fluent/fluentd-docker-image), by choosing the latest Windows Dockerfile. This [dockerfile](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/logging/fluentd/Dockerfile) file is the latest FluentD Dockerfile for Windows as of Jan 7, 2019.
+1. Copy the [fluent.conf](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/logging/fluentd/fluent.conf) file to the same directory.
 
 To configure FluentD to gather events from a file, we'll configure the ```tail``` input plugin to watch a directory for .log files, then to configure FluentD to output those events to stdout, we'll configure the ```stdout``` output plugin. The contents of your fluent.conf should look something like this:
 
-```conf
+```text
 # configure input plugins using source directive
 # NOTE: the path string must use '/' instead of '\'
 <source>
@@ -99,75 +99,45 @@ docker push {repo}/fluentd-win:1.3
 
 #### Kubernetes deployment
 
-There are two main differences in our deployment:
+Update the kubernetes [deployment](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/deployment/iis-with-logging.yaml#L33) with your newly pushed fluentd image. There are two main updates in this deployment:
 
-1. the addition of the fluentd container
-1. a shared volume
+1. The addition of the fluentd sidecar
+1. A shared volume
 
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: iis-with-logging
-  labels:
-    app: iis-with-logging
 spec:
-  replicas: 1
-  template:
-    metadata:
-      name: iis-with-logging
-      labels:
-        app: iis-with-logging
-    spec:
-      containers:
-      - name: iis
-        image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
-        resources:
-          limits:
-            cpu: 1
-            memory: 800m
-          requests:
-            cpu: .1
-            memory: 300m
-        ports:
-          - containerPort: 80
-        volumeMounts:
-        - mountPath: C:\inetpub\logs\LogFiles\w3svc1
-          name: log-volume
-      - name: fluentd
-        image: {repo}/fluentd-win:1.3
-        imagePullPolicy: Always
-        volumeMounts:
-        - mountPath: C:\logs
-          name: log-volume
-      volumes:
-      - name: log-volume
-        emptyDir: {}
-      nodeSelector:
-        "beta.kubernetes.io/os": windows
-  selector:
-    matchLabels:
-      app: iis-with-logging
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: iis-with-logging
-spec:
-  type: LoadBalancer
-  ports:
-  - protocol: TCP
-    port: 80
-  selector:
-    app: iis-with-logging
+  containers:
+  - name: iis
+    image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+    resources:
+      limits:
+        cpu: 1
+        memory: 800m
+      requests:
+        cpu: .1
+        memory: 300m
+    ports:
+      - containerPort: 80
+    volumeMounts:
+    - mountPath: C:\inetpub\logs\LogFiles\w3svc1
+      name: log-volume
+  - name: fluentd
+    image: {repo}/fluentd-win:1.3
+    imagePullPolicy: Always
+    volumeMounts:
+    - mountPath: C:\logs
+      name: log-volume
+  volumes:
+  - name: log-volume
+    emptyDir: {}
 ```
 
 Now you should be able to run ```kubectl logs -lapp=iis-with-logging -c fluentd``` to view iis events.
 
 Example output:
 
-```sh
-kubectl logs -lapp=iis-1803-with-logging -c fluentd
+```console
+PS> kubectl logs -lapp=iis-2019-with-logging -c fluentd
 2019-01-07 20:25:11 +0000 [info]: parsing config file is succeeded path="C:\\fluent\\conf\\fluent.conf"
 2019-01-07 20:25:13 +0000 [info]: using configuration file: <ROOT>
   <match fluent.**>
@@ -211,7 +181,7 @@ kubectl logs -lapp=iis-1803-with-logging -c fluentd
 
 It is important to observe and monitor the health of your cluster. There are a few options available for monitoring Kubernetes cluster, some of the main ones are highlighted [here](https://github.com/Azure/aks-engine/blob/master/docs/topics/monitoring.md). In this part of the lab, we will be looking at Azure Monitor (formerly Operations Management Suite) as well as how Windows Management Instrumentation can be leveraged to export metrics to Prometheus.
 
-#### Container Insights and Log Analytics 
+#### Container Insights and Log Analytics
 
 Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor for Containers [here](https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-overview).
 
