@@ -1,13 +1,14 @@
 
-# [!WIP] Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
+# [WIP] Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
 
 <!-- TOC -->
 
-- [Part 1 Creating the cluster with aks-engine](#part-1---creating-the-cluster-with-aks-engine)
+- [Part 1 - Creating the cluster with aks-engine](#part-1---creating-the-cluster-with-aks-engine)
 - [Part 2 - Logging and Monitoring](#part-2---logging-and-monitoring)
   - [Logging](#logging)
   - [Monitoring](#monitoring)
 - [Part 3 - Taints and Tolerations](#part-3---taints-and-tolerations---working-with-linux-and-windows-workloads)
+- [Part 4 - Deploying an Ingress Controller](#part-4---deploying-an-ingress-controller)
 
 <!-- /TOC -->
 
@@ -275,7 +276,7 @@ tolerations:
 
 This way, linux workloads can be deployed without any changes.
 
-## Part 4 - Deploy an Ingress controller
+## Part 4 - Deploying an Ingress Controller
 
 The final part of this lab is to use an ingress controller to route traffic to workloads running in your cluster, both Windows and Linux.
 
