@@ -1,5 +1,5 @@
 
-# [WIP] Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
+# Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
 
 <!-- TOC -->
 

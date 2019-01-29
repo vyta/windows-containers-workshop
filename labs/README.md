@@ -20,7 +20,7 @@
 - Part 1 - Run a Windows Service in a Windows Container
 - Part 2 - Run a Windows Service in a Windows Container with config updates and volume mapping
 
-## [WIP] Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
+## Lab 4 - Exploring Mixed Workloads in a kubernetes cluster
 
 - Notes
 - Part 1 - Creating the cluster with aks-engine
