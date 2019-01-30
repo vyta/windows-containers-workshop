@@ -8,7 +8,7 @@ metadata:
   namespace: default
 spec:
   rules:
-    - host: aks-engine.eastus.cloudapp.com
+    - host: <cluster-name>.<region>.cloudapp.com
       http:
         paths:
           - backend:

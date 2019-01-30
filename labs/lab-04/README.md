@@ -57,8 +57,8 @@ Similar to previous labs in this workshop, windows applications often maintain l
 
 As it currently stands, Docker Automated builds do not support windows. For this reason, we will need to manually build and push to our own repo. In order to do so, you need to:
 
-1. Get the latest Dockerfile from [here](https://github.com/fluent/fluentd-docker-image), by choosing the latest Windows Dockerfile. This [dockerfile](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/logging/fluentd/Dockerfile) file is the latest FluentD Dockerfile for Windows as of Jan 7, 2019.
-1. Copy the [fluent.conf](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/logging/fluentd/fluent.conf) file to the same directory.
+1. Get the latest Dockerfile from [here](https://github.com/fluent/fluentd-docker-image), by choosing the latest Windows Dockerfile. This [dockerfile](https://github.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/logging/fluentD/Dockerfile) file is the latest FluentD Dockerfile for Windows as of Jan 7, 2019.
+1. Copy the [fluent.conf](https://github.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/logging/fluentD/fluent.conf) file to the same directory.
 
 To configure FluentD to gather events from a file, we'll configure the ```tail``` input plugin to watch a directory for .log files, then to configure FluentD to output those events to stdout, we'll configure the ```stdout``` output plugin. The contents of your fluent.conf should look something like this:
 
@@ -99,7 +99,7 @@ docker push {repo}/fluentd-win:1.3
 
 #### Kubernetes deployment
 
-Update the kubernetes [deployment](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/deployment/iis-with-logging.yaml#L33) with your newly pushed fluentd image. There are two main updates in this deployment:
+Update the kubernetes [deployment](https://github.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/logging/deployment/iis-with-logging.yaml#L33) with your newly pushed fluentd image. There are two main updates in this deployment:
 
 1. The addition of the fluentd sidecar
 1. A shared volume
@@ -186,7 +186,7 @@ It is important to observe and monitor the health of your cluster. There are a f
 Azure Monitor allows you to monitor, analyze, and visualize the health of all your Azure applications and services whereever they are hosted in one location. You can learn more about Azure Monitor for Containers [here](https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-overview).
 
 Follow the steps [here](https://github.com/Microsoft/OMS-docker/tree/aks-engine) to add Azure Monitoring for Containers to your cluster.
-> **Tip**: Leverage the [AddAzureMonitor-Containers.ps1](https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/AddAzureMonitor-Containers.ps1) when adding the Container Insights Solution to your workspace.
+> **Tip**: Leverage the [AddAzureMonitor-Containers.ps1](https://raw.githubusercontent.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/monitoring/AddAzureMonitor-Containers.ps1) when adding the Container Insights Solution to your workspace.
 
 Now you should see data from your linux nodes. There currently isn't a containerized omsagent for windows, so there is additional work needed to get those nodes up to speed:
 
@@ -201,7 +201,7 @@ Now you should see data from your linux nodes. There currently isn't a container
         ```
       - Then run the prep script:
          ```bash
-        PS> powershell Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/monitoring/PrepWindowsNodesForAzMon.ps1 -OutFile PrepWindowsNodesForAzMon.ps1
+        PS> powershell Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/monitoring/PrepWindowsNodesForAzMon.ps1 -OutFile PrepWindowsNodesForAzMon.ps1
         PS> powershell .\PrepWindowsNodesForAzMon.ps1
         ```
   1. Then to install the Windows Agents on our Windows Nodes:
@@ -250,7 +250,7 @@ This way, linux workloads can be deployed without any changes.
 
 The final part of this lab is to use an ingress controller to route traffic to workloads running in your cluster, both Windows and Linux.
 
-  1. Create [Linux](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/ingress/linux-deployment.yaml) and [Windows](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/ingress/windows-deployment.yaml) services using `kubectl create -f [linux/windows]-deployment.yaml`.
+  1. Create [Linux](https://github.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/ingress/linux-deployment.yaml) and [Windows](https://github.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/ingress/windows-deployment.yaml) services using `kubectl create -f [linux/windows]-deployment.yaml`.
   1. Configure helm and setup NGINX:
       ```console
       PS> helm init --upgrade --node-selectors "beta.kubernetes.io/os=linux"
@@ -266,7 +266,7 @@ The final part of this lab is to use an ingress controller to route traffic to w
       nginx-ingress-controller-7d794c46f9-v2jjl        1/1       Running   0
       nginx-ingress-default-backend-6688d8694d-tr5kg   1/1       Running   0
       ```
-  1. Edit the [ingress rule](https://github.com/vyta/windows-containers-workshop/kubernetes/labs/lab-04/ingress/ingress.yaml) with a hostname you manage or for now, you can use your cluster's FQDN and create the ingress rule using `kubectl create -f ingress.yaml`
+  1. Edit the [ingress rule](https://github.com/vyta/windows-containers-workshop/blob/kubernetes/labs/lab-04/ingress/ingress.yaml) with a hostname you manage or for now, you can use your cluster's FQDN and create the ingress rule using `kubectl create -f ingress.yaml`
   1. Test the ingress rule:
       Get the external IP of your ingress controller:
       ```console
